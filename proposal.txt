@@ -1,0 +1,10 @@
+Project proposal - Car license plate recognition
+
+Authors: xlanro00, xmacho12
+
+We aim to create a CLI based program that will take an image as the input.
+It will output bounding-box coordinates of any detected license plates and their text contents.
+Our environment of choice is python with openCV library.
+The license plate will be found using edge detection to highlight the plate area.
+Then, we will use contour analysis to find potential license plate regions.
+Finally, OCR will be used to read the license plate number.
