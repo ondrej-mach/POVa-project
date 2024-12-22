@@ -1,21 +1,12 @@
 import torch.nn as nn
 import torch
 
-"""
-A CNN model for object detection.
-Methods:
-    forward(x):
-        Defines the forward pass of the model.
-        Args:
-            x (torch.Tensor): The input tensor.
-        Returns:
-            torch.Tensor: The output predictions.
-"""
-
 class CnnModel(nn.Module):
     def __init__(self, dropout):
         super(CnnModel, self).__init__()
 
+        # 3 convolutional layers with batch normalization, ReLU activation, 
+        # max pooling, and customizable dropout
         self.conv1 = nn.Conv2d(3, 32, 3, 1, 1)
         self.bn1 = nn.BatchNorm2d(32)
         self.relu1 = nn.ReLU()

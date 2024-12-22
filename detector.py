@@ -6,19 +6,8 @@ import net_model
 import parser
 import utils
 
-# Define the device
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-"""
-Trains the model.
-Args:
-    model (torch.nn.Module): The model to train.
-    trainDataLoader (torch.utils.data.DataLoader): The training data loader.
-    valDataLoader (torch.utils.data.DataLoader): The validation data loader.
-    opt (torch.optim.Optimizer): The optimizer to use.
-    lossFn (torch.nn.Module): The loss function to use.
-    iter (int): The number of iterations to train the model.
-"""
 def train(model, trainDataLoader, valDataLoader, opt, lossFn, iter, trainHist):
 
     scheduler = torch.optim.lr_scheduler.StepLR(opt, step_size=5, gamma=0.1)
@@ -32,9 +21,7 @@ def train(model, trainDataLoader, valDataLoader, opt, lossFn, iter, trainHist):
         totalTrainLoss = 0
 
         # loop over the training set
-        for data in tqdm.tqdm(
-            trainDataLoader, desc=f"Training Epoch {epoch + 1}/{iter}", unit="batch"
-        ):
+        for data in tqdm.tqdm(trainDataLoader, desc=f"Training Epoch {epoch + 1}/{iter}", unit="batch"):
 
             # Load image and bounding box from data structure
             img = data["img"]
@@ -72,48 +59,60 @@ def train(model, trainDataLoader, valDataLoader, opt, lossFn, iter, trainHist):
         trainHist["train_loss"].append(avgTrainLoss)
         trainHist["val_loss"].append(avgValLoss)
 
-        print(
-            f"Epoch: {epoch + 1}, Train Loss: {avgTrainLoss:.4f}, Val Loss: {avgValLoss:.4f}"
-        )
+        print(f"Epoch: {epoch + 1}, Train Loss: {avgTrainLoss:.4f}, Val Loss: {avgValLoss:.4f}")
 
+        # Early stopping to avoid overfitting
         if avgValLoss < stop_val_loss:
             print("Validation loss below threshold. Stopping training to avoid overfitting.")
             break
 
 
-def calculate_split(d):
-    ratios = [0.8, 0.1, 0.1]
-    trCount = int(len(d) * ratios[0])
-    vCount = int(len(d) * ratios[1])
-    tCount = len(d) - trCount - vCount
-    (trData, vData, tData) = torch.utils.data.random_split(
-        d,
-        [trCount, vCount, tCount],
-        generator=torch.Generator().manual_seed(42),
-    )
-    return trData, vData, tData
+def evaluate_model(model, testDataLoader, lossFn):
+    # Set the model to evaluation mode
+    model.eval()
+    totalTestLoss = 0
+    num_samples = 0
+
+    with torch.no_grad():
+        # Loop over the training set
+        for data in tqdm.tqdm(testDataLoader, desc=f"Testing", unit="batch"):
+
+            image = data["img"]
+            bbox = data["box"]
+
+            # Forward pass: make predictions using the model
+            pred = model(image)
+
+            # Calculate loss (assuming bbox prediction)
+            test_loss = lossFn(pred, bbox)
+            totalTestLoss += test_loss.item()
+            num_samples += 1
+
+    avgTestLoss = totalTestLoss / num_samples if num_samples > 0 else float("inf")
+    print(f"Average Test Loss: {avgTestLoss:.4f}")
 
 
 def objective(trial):
 
     # Suggest hyperparameters
-    learning_rate = trial.suggest_float('learning_rate', 1e-3, 1e-1, log=True)
-    batch_size = trial.suggest_int('batch_size', 16, 32)
-    dropout = trial.suggest_float('dropout_rate', 0.1, 0.3)
-    epochs = 10
+    learning_rate = trial.suggest_float("learning_rate", 1e-3, 1e-1, log=True)
+    batch_size = trial.suggest_int("batch_size", 16, 32)
+    dropout = trial.suggest_float("dropout_rate", 0.1, 0.3)
+    epochs = 20
     folder_name = utils.create_timestamped_folder()
 
-    # parse input data
+    # Parse input data
     dataset = parser.parse_data(device)
 
-    # calculate train/val/test sets
-    trainData, valData, testData = calculate_split(dataset)
+    # Calculate train/val/test sets
+    trainData, valData, testData = utils.calculate_split(dataset)
 
-    # initialize the train, validation, and test data loaders
+    # Initialize the train, validation, and test data loaders
     trainDataLoader = torch.utils.data.DataLoader(
         trainData, shuffle=True, batch_size=batch_size
     )
     valDataLoader = torch.utils.data.DataLoader(valData, batch_size=batch_size)
+    testDataLoader = torch.utils.data.DataLoader(testData, batch_size=batch_size)
 
     # Initialize model with suggested dropout rate
     print("Moving model to device:", device)
@@ -123,13 +122,18 @@ def objective(trial):
     optFn = torch.optim.Adam(model.parameters(), learning_rate)
     lossFn = torch.nn.SmoothL1Loss()
 
-    # Train the model (you would need to implement this function)
     trainHist = {"train_loss": [], "val_loss": []}
+
+    # Train the model
     print("Training model with learning rate:", learning_rate, "batch size:", batch_size, "dropout rate:", dropout)
     train(model, trainDataLoader, valDataLoader, optFn, lossFn, epochs, trainHist)
 
+    # Evaluate the model using the test data
+    evaluate_model(model, testDataLoader, lossFn)
+
+    # Save the model and training history
     utils.save_model(model, trainHist, folder_name)
-    
+
     # Return validation loss for Optuna to minimize
     return trainHist["val_loss"][-1]
 
@@ -139,11 +143,13 @@ def main():
         print("Using GPU")
 
     # Create a study and optimize the objective function
-    study = optuna.create_study(direction='minimize')
+    study = optuna.create_study(direction="minimize")
     study.optimize(objective, n_trials=1)
 
     # Print best hyperparameters
     print("Best hyperparameters:", study.best_params)
+    print("Best validation loss:", study.best_value)
+
 
 if __name__ == "__main__":
     main()
