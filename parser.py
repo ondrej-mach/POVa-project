@@ -6,7 +6,6 @@ import PIL
 import torch
 import utils
 
-
 def parse_data(device):
 
     # Download the dataset from kaggle (https://www.kaggle.com/datasets/andrewmvd/car-plate-detection)
@@ -20,26 +19,22 @@ def parse_data(device):
 
     # Read the xml files and extract the bounding boxes
     for annotation in annPaths:
-        try:
-            with open(os.path.join(annPath, annotation)) as file:
-                # Parse xml annotation
-                data = file.read()
+        with open(os.path.join(annPath, annotation)) as file:
+            # Parse xml annotation
+            data = file.read()
 
-                root, coords = utils.extract_bounding_box(data, True)
+            root, coords = utils.extract_bounding_box(data, True)
+            if coords is None:
+                continue
+            coords_tensor = torch.tensor(coords).float().to(device)
 
-                img_path = os.path.join(imgPath, root.find("filename").text)
+            img_path = os.path.join(imgPath, root.find("filename").text)
 
-                # Load and preprocess the image
-                image = PIL.Image.open(img_path).convert("RGB")
-                image = transforms.Resize((416, 416))(image)
-                image = transforms.ToTensor()(image).to(device)
-                image = transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])(image)
+            # Load and preprocess the image
+            image = PIL.Image.open(img_path).convert("RGB")
+            image = transforms.Resize((416, 416))(image)
+            image = transforms.ToTensor()(image).to(device)
 
-                coords_tensor = torch.tensor(coords).float().to(device)
-                dataset.append({"img": image, "box": coords_tensor})
-
-        except Exception as e:
-            print(f"Error processing annotation: {annotation}", e)
-            continue
-
+            dataset.append({"img": image, "box": coords_tensor})
+            
     return dataset

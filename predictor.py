@@ -11,18 +11,20 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 # Load the model and its weights
 def load_model(model_path):
-    model = net_model.CnnModel(0.12).to(device)
+    model = net_model.CnnModel(0).to(device)
+    print("Loading model from: ", model_path)
     model.load_state_dict(torch.load(model_path, weights_only=True))
-    model.eval()
     return model
 
 
 # Make predictions on the image
-def predict_bounding_box(model, image_tensor):
+def predict_bounding_box(model, image_tensor, img_size):
+    model.eval()
     with torch.no_grad():
         # Make prediction, denormalize the bounding box and convert it to an integers
         prediction = model(image_tensor).cpu().numpy()
-        denormalized_bbox = prediction[0] * 416
+        denormalized_bbox = prediction[0] * [img_size[0], img_size[1], img_size[0], img_size[1]]
+        print("Predicted bounding box: ", prediction[0])
         denormalized_bbox = list(map(int, denormalized_bbox))
     return denormalized_bbox
 
@@ -47,7 +49,7 @@ def visualize_prediction(image, bbox_pred, bbox_true):
             bbox_pred[2] - bbox_pred[0],
             bbox_pred[3] - bbox_pred[1],
             linewidth=2,
-            edgecolor="r",
+            edgecolor="m",
             facecolor="none",
             label="Prediction",
         )
@@ -58,15 +60,14 @@ def visualize_prediction(image, bbox_pred, bbox_true):
 
 
 # Resize the image and convert it to a tensor
-def preprocess_image(image_path):
-    transform = transforms.Compose(
-        [
-            transforms.Resize((416, 416)),
-            transforms.ToTensor(),
-        ]
-    )
-    image = Image.open(image_path).convert("RGB")
-    image_tensor = transform(image).unsqueeze(0).to(device)
+def preprocess_image(img_path):
+    image = Image.open(img_path).convert("RGB")
+    image_tensor = transforms.Resize((416, 416))(image)
+    image_tensor = transforms.ToTensor()(image_tensor).to(device)
+
+    print("Image shape: ", image.size)
+    image_tensor = image_tensor.unsqueeze(0).to(device)
+    print("Image tensor shape: ", image_tensor.shape)
 
     return image_tensor, image
 
@@ -88,8 +89,8 @@ def get_orig_bbox(image_path):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("model_path", type=str, help="Path to the model")
     parser.add_argument("img_path", type=str, help="Path to the image")
+    parser.add_argument("model_path", type=str, help="Path to the model")
     args = parser.parse_args()
 
     # Load the trained model and its weights from file
@@ -100,9 +101,10 @@ def main():
 
     # Preprocess the image and make predictions
     image_tensor, original_image = preprocess_image(image_path)
-    denorm_bbox = predict_bounding_box(model, image_tensor)
+    img_size = original_image.size
+    denorm_bbox = predict_bounding_box(model, image_tensor, img_size)
     print("Predicted bounding box: ", denorm_bbox)
-
+    
     # Get the original bounding box
     truth_bbox = get_orig_bbox(image_path)
 

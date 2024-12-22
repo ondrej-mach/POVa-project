@@ -20,6 +20,8 @@ def calculate_split(d):
 def extract_bounding_box(data, normalize):
     root = ET.fromstring(data)
     objects = root.findall("object")
+    if len(objects) > 1:
+        return None, None
     for obj in objects:
         # Extract the bounding box
         box = obj.find("bndbox")
@@ -43,10 +45,10 @@ def extract_bounding_box(data, normalize):
             coords[2] = coords[2] / img_width
             coords[3] = coords[3] / img_height
 
-        return root, coords
+    return root, coords
 
 
-def plot_loss(folder_name, trainHist):
+def plot_loss(folder_name, trainHist, show_plot):
     os.makedirs("output", exist_ok=True)
     epochs = range(1, len(trainHist["train_loss"]) + 1)
     plt.figure(figsize=(10, 5))
@@ -57,7 +59,8 @@ def plot_loss(folder_name, trainHist):
     plt.ylabel("Loss")
     plt.legend()
     plt.savefig(folder_name + "/loss.png")
-
+    if show_plot:
+        plt.show()
 
 def create_timestamped_folder():
 
@@ -73,12 +76,12 @@ def create_timestamped_folder():
     return folder_name
 
 
-def save_model(model, trainHist, folder_name):
+def save_model(model, trainHist, folder_name, show_plot=True):
     # Create the directory if it does not exist
     os.makedirs(folder_name, exist_ok=True)
 
     # save model and plotted loss
     torch.save(model.state_dict(), folder_name + "/model.pth")
     torch.save(trainHist, folder_name + "/trainHist.pth")
-    plot_loss(folder_name, trainHist)
+    plot_loss(folder_name, trainHist, show_plot)
     print("Model and loss graph saved to " + folder_name)
