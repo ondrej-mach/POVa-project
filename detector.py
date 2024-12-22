@@ -69,7 +69,7 @@ def train(model, trainDataLoader, valDataLoader, opt, lossFn, iter, trainHist):
 
         print(f"Epoch: {epoch + 1}, Train Loss: {avgTrainLoss:.4f}, Val Loss: {avgValLoss:.4f}")
 
-        return avgValLoss
+    return avgValLoss
 
 def objective(trial):
  
