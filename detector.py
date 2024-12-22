@@ -22,9 +22,10 @@ Args:
 def train(model, trainDataLoader, valDataLoader, opt, lossFn, iter, trainHist):
 
     scheduler = torch.optim.lr_scheduler.StepLR(opt, step_size=5, gamma=0.1)
+    stop_val_loss = 0.005
 
     # loop over our epochs
-    for e in range(iter):
+    for epoch in range(iter):
 
         # set the model in training mode
         model.train()
@@ -32,7 +33,7 @@ def train(model, trainDataLoader, valDataLoader, opt, lossFn, iter, trainHist):
 
         # loop over the training set
         for data in tqdm.tqdm(
-            trainDataLoader, desc=f"Training Epoch {e + 1}/{iter}", unit="batch"
+            trainDataLoader, desc=f"Training Epoch {epoch + 1}/{iter}", unit="batch"
         ):
 
             # Load image and bounding box from data structure
@@ -72,8 +73,12 @@ def train(model, trainDataLoader, valDataLoader, opt, lossFn, iter, trainHist):
         trainHist["val_loss"].append(avgValLoss)
 
         print(
-            f"Epoch: {e + 1}, Train Loss: {avgTrainLoss:.4f}, Val Loss: {avgValLoss:.4f}"
+            f"Epoch: {epoch + 1}, Train Loss: {avgTrainLoss:.4f}, Val Loss: {avgValLoss:.4f}"
         )
+
+        if avgValLoss < stop_val_loss:
+            print("Validation loss below threshold. Stopping training to avoid overfitting.")
+            break
 
 
 def calculate_split(d):
@@ -89,14 +94,13 @@ def calculate_split(d):
     return trData, vData, tData
 
 
-
 def objective(trial):
 
     # Suggest hyperparameters
-    learning_rate = trial.suggest_float('learning_rate', 1e-5, 1e-1, log=True)
-    batch_size = trial.suggest_int('batch_size', 16, 64)
-    dropout = trial.suggest_float('dropout_rate', 0.1, 0.5)
-    epochs = 3
+    learning_rate = trial.suggest_float('learning_rate', 1e-3, 1e-1, log=True)
+    batch_size = trial.suggest_int('batch_size', 16, 32)
+    dropout = trial.suggest_float('dropout_rate', 0.1, 0.3)
+    epochs = 10
     folder_name = utils.create_timestamped_folder()
 
     # parse input data
@@ -112,6 +116,7 @@ def objective(trial):
     valDataLoader = torch.utils.data.DataLoader(valData, batch_size=batch_size)
 
     # Initialize model with suggested dropout rate
+    print("Moving model to device:", device)
     model = net_model.CnnModel(dropout).to(device)
 
     # Define optimizer and loss function
@@ -123,16 +128,19 @@ def objective(trial):
     print("Training model with learning rate:", learning_rate, "batch size:", batch_size, "dropout rate:", dropout)
     train(model, trainDataLoader, valDataLoader, optFn, lossFn, epochs, trainHist)
 
-    utils.save_model(model, str(trial.number), trainHist, folder_name)
+    utils.save_model(model, trainHist, folder_name)
     
     # Return validation loss for Optuna to minimize
     return trainHist["val_loss"][-1]
 
 
 def main():
+    if torch.cuda.is_available():
+        print("Using GPU")
+
     # Create a study and optimize the objective function
     study = optuna.create_study(direction='minimize')
-    study.optimize(objective, n_trials=5)
+    study.optimize(objective, n_trials=1)
 
     # Print best hyperparameters
     print("Best hyperparameters:", study.best_params)

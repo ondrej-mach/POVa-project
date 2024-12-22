@@ -5,6 +5,7 @@ import xml.etree.ElementTree as ET
 from torchvision import transforms
 import PIL 
 import torch
+import torchshow as ts
 
 
 # Define the data preprocessing
@@ -71,6 +72,7 @@ def parse_data(device):
                         image.show()'''
 
                     image = transforms.ToTensor()(image).to(device)
+                    image = transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])(image)
 
                     coords_tensor = torch.tensor(coords).float().to(device)
                     dataset.append({"img": image, "box": coords_tensor})

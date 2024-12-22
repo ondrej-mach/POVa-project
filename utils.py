@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import torch
 import os
 
-def plot_loss(folder_name, trainHist, trial):
+def plot_loss(folder_name, trainHist):
     os.makedirs("output", exist_ok=True)
     epochs = range(1, len(trainHist["train_loss"]) + 1)
     plt.figure(figsize=(10, 5))
@@ -13,7 +13,7 @@ def plot_loss(folder_name, trainHist, trial):
     plt.xlabel("Epoch")
     plt.ylabel("Loss")
     plt.legend()
-    plt.savefig(folder_name + "/" + trial + "/loss.png")
+    plt.savefig(folder_name + "/loss.png")
 
 def create_timestamped_folder():
 
@@ -30,13 +30,12 @@ def create_timestamped_folder():
     print(f"Folder created: {folder_name}")
     return folder_name
 
-def save_model(model, trial, trainHist, folder_name):
+def save_model(model, trainHist, folder_name):
     print("Saving model...")
     
-    os.makedirs(folder_name + "/" + trial, exist_ok=True)
-    print(folder_name + "/" + trial)
+    os.makedirs(folder_name, exist_ok=True)
 
-    plot_loss(folder_name, trainHist, trial)
-    torch.save(model.state_dict(), folder_name + "/" + trial + "/model.pth")
-    torch.save(trainHist, folder_name + "/" + trial + "/trainHist.pth")
-    print("Model saved successfully")
+    plot_loss(folder_name, trainHist)
+    torch.save(model.state_dict(), folder_name + "/model.pth")
+    torch.save(trainHist, folder_name + "/trainHist.pth")
+    print("Model saved successfully to " + folder_name + "/model.pth")
