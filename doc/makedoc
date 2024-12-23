@@ -1,6 +1,6 @@
 #!/bin/sh
 
-pandoc README.md -o doc.pdf \
+pandoc README.md -o doc/doc.pdf \
   --from gfm \
   --pdf-engine=xelatex \
   --template eisvogel.tex \
