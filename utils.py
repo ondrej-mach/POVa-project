@@ -5,6 +5,7 @@ import os
 import xml.etree.ElementTree as ET
 from PIL import Image
 from torchvision import transforms
+import random
 
 def calculate_split(d):
     ratios = [0.8, 0.1, 0.1]
@@ -90,8 +91,21 @@ def save_model(model, trainHist, folder_name, show_plot=True):
 
 
 # Resize the image and convert it to a tensor
-def preprocess_image(img_path, device):
+def preprocess_image(img_path, device, augment):
     image = Image.open(img_path).convert("RGB")
+    # moved here from separate script
+    if augment:
+        val = random.random()
+        if val < 0.2:
+            image = transforms.GaussianBlur(3, sigma=(0.1, 2.0))(image)
+        if val < 0.6:
+            image = transforms.ColorJitter(brightness=0.2, contrast=0.3, saturation=0.15, hue=0.1)(image)
+        if 0.2 < val < 0.4:
+            image = transforms.RandomResizedCrop(416, scale=(0.8, 1.0))(image)
+        if 0.3 < val < 0.7:
+            image = transforms.RandomRotation(15)(image)
+        image = transforms.RandomHorizontalFlip(p=0.5)(image)
+
     image_tensor = transforms.Resize((416, 416))(image)
     image_tensor = transforms.ToTensor()(image_tensor).to(device)
     image_tensor = image_tensor.unsqueeze(0).to(device)

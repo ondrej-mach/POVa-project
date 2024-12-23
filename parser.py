@@ -30,7 +30,7 @@ def parse_data(device):
             img_path = os.path.join(imgPath, root.find("filename").text)
 
             # Preprocess the image
-            image_tensor, _ = utils.preprocess_image(img_path, device)
+            image_tensor, _ = utils.preprocess_image(img_path, device, augment=False)
 
             dataset.append({"img": image_tensor, "box": coords_tensor})
 

@@ -125,7 +125,7 @@ def main():
     enh = args.enhance
 
     # Preprocess the image
-    image_tensor, original_image = utils.preprocess_image(image_path, device)
+    image_tensor, original_image = utils.preprocess_image(image_path, device, False)
     img_size = original_image.size
 
     # Make predictions
