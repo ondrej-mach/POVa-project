@@ -122,6 +122,22 @@ Future research directions and improvements:
 
 The system offers both single-image and batch processing modes. Results include visualizations of detected regions and extracted text output. Results are also saved into a log file under `output/ocr_pred.txt`.
 
+```sh
+python detector.py <max_epochs_for_hyperparameter_optimization> 
+```
+
+```sh
+python predictor.py <path_to_saved_model> <path_to_input_image> -t 1 
+```
+
+```sh
+python batch_predict.py 
+```
+
+```sh
+python recognition.py
+```
+
 ### Performance Optimization
 For optimal performance, we recommend:
 - GPU acceleration when available
