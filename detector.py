@@ -10,6 +10,7 @@ import utils
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+
 def train(model, trainDataLoader, valDataLoader, opt, lossFn, iter, trainHist):
 
     # loop over our epochs
@@ -71,8 +72,9 @@ def train(model, trainDataLoader, valDataLoader, opt, lossFn, iter, trainHist):
 
     return avgValLoss
 
+
 def objective(trial):
- 
+
     # Parse the number of epochs
     p = argparse.ArgumentParser()
     p.add_argument("epochs", type=int, help="Number of epochs")
@@ -80,14 +82,14 @@ def objective(trial):
     max_epochs = args.epochs
 
     # Suggest hyperparameters
-    learning_rate = trial.suggest_float("learning_rate", 1e-6, 1e-1, log=True)
-    batch_size = trial.suggest_int("batch_size", 16, 24)
-    dropout = trial.suggest_float("dropout_rate", 0.0001, 0.2)
-    epochs = trial.suggest_int("epochs", 10, max_epochs)
+    learning_rate = trial.suggest_float("learning_rate", 1e-6, 1e-5, log=True)
+    batch_size = trial.suggest_int("batch_size", 18, 20)
+    dropout = trial.suggest_float("dropout_rate", 0.001, 0.05)
+    epochs = trial.suggest_int("epochs", 30, max_epochs)
 
     # Parse input data
     dataset = parser.parse_data(device)
-    
+
     # Calculate train/val/test sets
     trainData, valData, testData = utils.calculate_split(dataset)
 
@@ -116,9 +118,11 @@ def objective(trial):
 
     return trainHist["val_loss"][-1]
 
+
+# modified from optuna tutorial
 if __name__ == "__main__":
     study = optuna.create_study(direction="minimize")
-    study.optimize(objective, n_trials=150)
+    study.optimize(objective, n_trials=20)
 
     pruned_trials = study.get_trials(deepcopy=False, states=[TrialState.PRUNED])
     complete_trials = study.get_trials(deepcopy=False, states=[TrialState.COMPLETE])

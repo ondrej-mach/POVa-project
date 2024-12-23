@@ -3,6 +3,8 @@ import matplotlib.pyplot as plt
 import torch
 import os
 import xml.etree.ElementTree as ET
+from PIL import Image
+from torchvision import transforms
 
 def calculate_split(d):
     ratios = [0.8, 0.1, 0.1]
@@ -85,3 +87,13 @@ def save_model(model, trainHist, folder_name, show_plot=True):
     torch.save(trainHist, folder_name + "/trainHist.pth")
     plot_loss(folder_name, trainHist, show_plot)
     print("Model and loss graph saved to " + folder_name)
+
+
+# Resize the image and convert it to a tensor
+def preprocess_image(img_path, device):
+    image = Image.open(img_path).convert("RGB")
+    image_tensor = transforms.Resize((416, 416))(image)
+    image_tensor = transforms.ToTensor()(image_tensor).to(device)
+    image_tensor = image_tensor.unsqueeze(0).to(device)
+
+    return image_tensor, image

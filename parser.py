@@ -1,10 +1,10 @@
 import kagglehub
 import shutil
 import os
-from torchvision import transforms
-import PIL
 import torch
+
 import utils
+
 
 def parse_data(device):
 
@@ -22,7 +22,6 @@ def parse_data(device):
         with open(os.path.join(annPath, annotation)) as file:
             # Parse xml annotation
             data = file.read()
-
             root, coords = utils.extract_bounding_box(data, True)
             if coords is None:
                 continue
@@ -30,11 +29,9 @@ def parse_data(device):
 
             img_path = os.path.join(imgPath, root.find("filename").text)
 
-            # Load and preprocess the image
-            image = PIL.Image.open(img_path).convert("RGB")
-            image = transforms.Resize((416, 416))(image)
-            image = transforms.ToTensor()(image).to(device)
+            # Preprocess the image
+            image_tensor, _ = utils.preprocess_image(img_path, device)
 
-            dataset.append({"img": image, "box": coords_tensor})
-            
+            dataset.append({"img": image_tensor, "box": coords_tensor})
+
     return dataset
