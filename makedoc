@@ -1,0 +1,13 @@
+#!/bin/sh
+
+pandoc README.md -o doc.pdf \
+  --from gfm \
+  --pdf-engine=xelatex \
+  --template eisvogel.tex \
+  --variable papersize=a4 \
+  --variable titlepage=true \
+  --variable toc-own-page=true \
+  --toc \
+  --standalone \
+  --variable geometry:margin=1in \
+  --variable listSpacing=true
